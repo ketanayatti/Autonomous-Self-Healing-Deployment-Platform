@@ -1,0 +1,23 @@
+{
+  "name": "devops-deployment-test-app",
+  "version": "1.0.0",
+  "description": "A Fastify-based test application for validating DevOps deployment pipelines (blue/green, health checks, failure simulation).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "fastify",
+    "devops",
+    "blue-green",
+    "deployment",
+    "health-check"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/static": "^9.0.0",
+    "fastify": "^5.3.2"
+  }
+}

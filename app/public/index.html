@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="DevOps Deployment Dashboard – real-time health monitoring, blue/green deployment controls, and failure simulation." />
+  <title>DevOps Deployment Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-card-hover: rgba(30, 41, 59, 0.8);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-glow: rgba(99, 102, 241, 0.3);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #6366f1;
+      --accent-blue-glow: rgba(99, 102, 241, 0.25);
+      --accent-green: #10b981;
+      --accent-green-glow: rgba(16, 185, 129, 0.25);
+      --accent-red: #ef4444;
+      --accent-red-glow: rgba(239, 68, 68, 0.25);
+      --accent-amber: #f59e0b;
+      --accent-amber-glow: rgba(245, 158, 11, 0.25);
+      --accent-cyan: #06b6d4;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ────────────────────── */
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+      animation: bgShift 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgShift {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: fadeInDown 0.6s ease-out;
+    }
+
+    .header__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent-blue);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .header__badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-blue) 50%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      margin-top: 0.5rem;
+      font-weight: 400;
+    }
+
+    /* ── Status Banner (large) ──────────────────── */
+    .status-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 1.25rem 2rem;
+      border-radius: var(--radius);
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(16px);
+      transition: var(--transition);
+      animation: fadeInDown 0.7s ease-out;
+    }
+
+    .status-banner.healthy {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .status-banner.unhealthy {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02));
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .status-banner.loading {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02));
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .status-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .status-dot::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .healthy .status-dot {
+      background: var(--accent-green);
+      box-shadow: 0 0 12px var(--accent-green-glow);
+    }
+    .healthy .status-dot::after {
+      border: 2px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .unhealthy .status-dot {
+      background: var(--accent-red);
+      box-shadow: 0 0 12px var(--accent-red-glow);
+    }
+    .unhealthy .status-dot::after {
+      border: 2px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .loading .status-dot {
+      background: var(--accent-amber);
+      box-shadow: 0 0 12px var(--accent-amber-glow);
+    }
+    .loading .status-dot::after {
+      border: 2px solid rgba(245, 158, 11, 0.3);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .status-banner__text {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .healthy .status-banner__text { color: var(--accent-green); }
+    .unhealthy .status-banner__text { color: var(--accent-red); }
+    .loading .status-banner__text { color: var(--accent-amber); }
+
+    .status-banner__time {
+      margin-left: auto;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    /* ── Cards Grid ─────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+      animation: fadeInUp 0.6s ease-out both;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+    .card:nth-child(4) { animation-delay: 0.4s; }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-glow);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card), 0 0 30px rgba(99, 102, 241, 0.08);
+    }
+
+    .card__icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .card__icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .card__icon--blue    { background: rgba(99, 102, 241, 0.12); color: var(--accent-blue); }
+    .card__icon--green   { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); }
+    .card__icon--cyan    { background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); }
+    .card__icon--amber   { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); }
+
+    .card__label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.35rem;
+    }
+
+    .card__value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .card__sub {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* Tag for blue/green */
+    .env-tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .env-tag--blue {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .env-tag--green {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    /* ── Actions Section ────────────────────────── */
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+    }
+
+    .section-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--accent-blue);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.6s ease-out 0.5s both;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      font-size: 0.92rem;
+      font-weight: 500;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .action-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .action-btn--danger {
+      border-color: rgba(239, 68, 68, 0.15);
+    }
+    .action-btn--danger:hover {
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+      background: rgba(239, 68, 68, 0.06);
+    }
+    .action-btn--danger .action-btn__icon {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--accent-red);
+    }
+
+    .action-btn--success {
+      border-color: rgba(16, 185, 129, 0.15);
+    }
+    .action-btn--success:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.06);
+    }
+    .action-btn--success .action-btn__icon {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-green);
+    }
+
+    .action-btn--info {
+      border-color: rgba(6, 182, 212, 0.15);
+    }
+    .action-btn--info:hover {
+      border-color: rgba(6, 182, 212, 0.4);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+      background: rgba(6, 182, 212, 0.06);
+    }
+    .action-btn--info .action-btn__icon {
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--accent-cyan);
+    }
+
+    .action-btn--primary {
+      border-color: rgba(99, 102, 241, 0.15);
+    }
+    .action-btn--primary:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+      background: rgba(99, 102, 241, 0.06);
+    }
+    .action-btn--primary .action-btn__icon {
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent-blue);
+    }
+
+    .action-btn__icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .action-btn__icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .action-btn__text { flex: 1; }
+    .action-btn__title {
+      font-weight: 600;
+      font-size: 0.92rem;
+      margin-bottom: 2px;
+    }
+    .action-btn__desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Loading spinner on button */
+    .action-btn.is-loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* ── Activity Log ───────────────────────────── */
+    .log-container {
+      animation: fadeInUp 0.6s ease-out 0.6s both;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .log-clear-btn {
+      font-family: var(--font-sans);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .log-clear-btn:hover {
+      color: var(--text-secondary);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .log {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-card);
+      padding: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .log::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .log::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .log::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .log-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      animation: slideIn 0.3s ease-out;
+      transition: background 0.2s;
+    }
+
+    .log-entry:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .log-entry + .log-entry {
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .log-entry__time {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      min-width: 70px;
+      padding-top: 1px;
+    }
+
+    .log-entry__indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .log-entry__indicator--ok      { background: var(--accent-green); }
+    .log-entry__indicator--error   { background: var(--accent-red); }
+    .log-entry__indicator--warn    { background: var(--accent-amber); }
+    .log-entry__indicator--info    { background: var(--accent-cyan); }
+
+    .log-entry__message {
+      flex: 1;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .log-entry__message strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .log-entry__status {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .log-entry__status--200 {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--accent-green);
+    }
+
+    .log-entry__status--500 {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--accent-red);
+    }
+
+    .log-empty {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .log-empty svg {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 0.75rem;
+      opacity: 0.3;
+    }
+
+    /* ── Polling toggle ─────────────────────────── */
+    .polling-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.6s ease-out 0.45s both;
+    }
+
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      appearance: none;
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      outline: none;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      transition: var(--transition);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle:checked {
+      background: var(--accent-blue);
+    }
+
+    .toggle:checked::after {
+      transform: translateX(20px);
+    }
+
+    .interval-select {
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      cursor: pointer;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .interval-select:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .interval-select option {
+      background: var(--bg-secondary);
+    }
+
+    /* ── Animations ─────────────────────────────── */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Responsive ─────────────────────────────── */
+    @media (max-width: 640px) {
+      .app { padding: 1.25rem 1rem 3rem; }
+      .header h1 { font-size: 1.75rem; }
+      .cards { grid-template-columns: 1fr 1fr; }
+      .actions { grid-template-columns: 1fr; }
+      .status-banner { flex-wrap: wrap; gap: 10px; padding: 1rem; }
+      .status-banner__time { margin-left: 0; width: 100%; text-align: center; }
+    }
+
+    @media (max-width: 400px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-gradient"></div>
+
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header__badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        Deployment Platform
+      </div>
+      <h1>DevOps Dashboard</h1>
+      <p>Real-time deployment health monitoring &amp; control</p>
+    </header>
+
+    <!-- Status Banner -->
+    <div id="statusBanner" class="status-banner loading">
+      <div class="status-dot"></div>
+      <span class="status-banner__text" id="statusText">Connecting…</span>
+      <span class="status-banner__time" id="statusTime">--:--:--</span>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card__icon card__icon--blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+          </svg>
+        </div>
+        <div class="card__label">Status</div>
+        <div class="card__value" id="cardStatus">—</div>
+        <div class="card__sub" id="cardStatusSub">Checking…</div>
+      </div>
+
+      <div class="card">
+        <div class="card__icon card__icon--cyan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M7 7h10v10H7z"/><path d="M11 3v4m0 10v4M3 11h4m10 0h4"/>
+          </svg>
+        </div>
+        <div class="card__label">Version</div>
+        <div class="card__value" id="cardVersion">—</div>
+        <div class="card__sub">Current release</div>
+      </div>
+
+      <div class="card">
+        <div class="card__icon card__icon--green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+        <div class="card__label">Environment</div>
+        <div class="card__value" id="cardEnv">—</div>
+        <div class="card__sub">Deployment slot</div>
+      </div>
+
+      <div class="card">
+        <div class="card__icon card__icon--amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <div class="card__label">Uptime Checks</div>
+        <div class="card__value" id="cardChecks">0</div>
+        <div class="card__sub" id="cardSuccessRate">—</div>
+      </div>
+    </div>
+
+    <!-- Polling Controls -->
+    <div class="polling-controls">
+      <label class="toggle-wrapper">
+        <input type="checkbox" class="toggle" id="pollingToggle" checked />
+        Auto-refresh
+      </label>
+      <select class="interval-select" id="intervalSelect">
+        <option value="3000">Every 3s</option>
+        <option value="5000" selected>Every 5s</option>
+        <option value="10000">Every 10s</option>
+        <option value="30000">Every 30s</option>
+      </select>
+    </div>
+
+    <!-- Actions -->
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      Actions
+    </div>
+
+    <div class="actions">
+      <button class="action-btn action-btn--danger" id="btnFailure" onclick="simulateFailure()">
+        <div class="action-btn__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="action-btn__text">
+          <div class="action-btn__title">Simulate Failure</div>
+          <div class="action-btn__desc">Health check will return HTTP 500</div>
+        </div>
+      </button>
+
+      <button class="action-btn action-btn--success" id="btnRecovery" onclick="simulateRecovery()">
+        <div class="action-btn__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="action-btn__text">
+          <div class="action-btn__title">Simulate Recovery</div>
+          <div class="action-btn__desc">Restore healthy state (HTTP 200)</div>
+        </div>
+      </button>
+
+      <button class="action-btn action-btn--info" id="btnHealth" onclick="manualHealthCheck()">
+        <div class="action-btn__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="action-btn__text">
+          <div class="action-btn__title">Manual Health Check</div>
+          <div class="action-btn__desc">Trigger an immediate health poll</div>
+        </div>
+      </button>
+
+      <button class="action-btn action-btn--primary" id="btnVersion" onclick="fetchVersion()">
+        <div class="action-btn__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <div class="action-btn__text">
+          <div class="action-btn__title">Fetch Version Info</div>
+          <div class="action-btn__desc">Query /version endpoint</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="log-container">
+      <div class="log-header">
+        <div class="section-title" style="margin-bottom:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Activity Log
+        </div>
+        <button class="log-clear-btn" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log" id="logPanel">
+        <div class="log-empty" id="logEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+          </svg>
+          <div>No activity yet. Events will appear here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────
+    let totalChecks  = 0;
+    let okChecks     = 0;
+    let pollingTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    // ── Helpers ──────────────────────────────────
+    function now() {
+      return new Date().toLocaleTimeString('en-GB', { hour12: false });
+    }
+
+    function addLogEntry(type, message, status) {
+      const empty = $('logEmpty');
+      if (empty) empty.remove();
+
+      const panel = $('logPanel');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      const indicatorClass = {
+        ok: 'log-entry__indicator--ok',
+        error: 'log-entry__indicator--error',
+        warn: 'log-entry__indicator--warn',
+        info: 'log-entry__indicator--info',
+      }[type] || 'log-entry__indicator--info';
+
+      let statusHtml = '';
+      if (status) {
+        const statusClass = status >= 500
+          ? 'log-entry__status--500'
+          : 'log-entry__status--200';
+        statusHtml = `<span class="log-entry__status ${statusClass}">${status}</span>`;
+      }
+
+      entry.innerHTML = `
+        <span class="log-entry__time">${now()}</span>
+        <span class="log-entry__indicator ${indicatorClass}"></span>
+        <span class="log-entry__message">${message}</span>
+        ${statusHtml}
+      `;
+
+      panel.prepend(entry);
+
+      // Keep max 50 entries
+      const entries = panel.querySelectorAll('.log-entry');
+      if (entries.length > 50) {
+        entries[entries.length - 1].remove();
+      }
+    }
+
+    function clearLog() {
+      const panel = $('logPanel');
+      panel.innerHTML = `
+        <div class="log-empty" id="logEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+          </svg>
+          <div>No activity yet. Events will appear here.</div>
+        </div>
+      `;
+    }
+
+    function updateBanner(status) {
+      const banner   = $('statusBanner');
+      const text     = $('statusText');
+      const time     = $('statusTime');
+
+      banner.className = 'status-banner ' + status;
+      time.textContent = now();
+
+      if (status === 'healthy') {
+        text.textContent = 'All Systems Operational';
+      } else if (status === 'unhealthy') {
+        text.textContent = 'Service Degraded — Failure Mode Active';
+      } else {
+        text.textContent = 'Connecting…';
+      }
+    }
+
+    function updateCards(data) {
+      if (data.status) {
+        $('cardStatus').textContent = data.status === 'ok' ? 'Healthy' : 'Failure';
+        $('cardStatus').style.color = data.status === 'ok'
+          ? 'var(--accent-green)'
+          : 'var(--accent-red)';
+        $('cardStatusSub').textContent = data.status === 'ok'
+          ? 'Responding normally'
+          : 'Failure mode enabled';
+      }
+
+      if (data.version) {
+        $('cardVersion').textContent = data.version;
+      }
+
+      if (data.environment) {
+        const color = data.environment === 'blue' ? 'blue' : 'green';
+        $('cardEnv').innerHTML =
+          `<span class="env-tag env-tag--${color}">${data.environment}</span>`;
+      }
+    }
+
+    function updateChecks() {
+      $('cardChecks').textContent = totalChecks;
+      const rate = totalChecks > 0
+        ? ((okChecks / totalChecks) * 100).toFixed(1) + '% success rate'
+        : '—';
+      $('cardSuccessRate').textContent = rate;
+    }
+
+    // ── API Calls ────────────────────────────────
+    async function checkHealth() {
+      try {
+        const res  = await fetch('/health');
+        const data = await res.json();
+        totalChecks++;
+
+        if (res.ok) {
+          okChecks++;
+          updateBanner('healthy');
+          updateCards({ ...data, status: 'ok' });
+          addLogEntry('ok', '<strong>Health check</strong> — Service is healthy', res.status);
+        } else {
+          updateBanner('unhealthy');
+          updateCards({ ...data, status: 'failure' });
+          addLogEntry('error', '<strong>Health check</strong> — Service failure detected', res.status);
+        }
+
+        updateChecks();
+
+        // Also fetch version info for cards
+        try {
+          const vRes = await fetch('/version');
+          const vData = await vRes.json();
+          updateCards(vData);
+        } catch (_) { /* silent */ }
+
+      } catch (err) {
+        totalChecks++;
+        updateBanner('unhealthy');
+        $('cardStatus').textContent = 'Offline';
+        $('cardStatus').style.color = 'var(--accent-red)';
+        $('cardStatusSub').textContent = 'Connection failed';
+        addLogEntry('error', `<strong>Health check</strong> — Connection error: ${err.message}`);
+        updateChecks();
+      }
+    }
+
+    async function simulateFailure() {
+      const btn = $('btnFailure');
+      btn.classList.add('is-loading');
+      try {
+        const res  = await fetch('/simulate-failure');
+        const data = await res.json();
+        addLogEntry('warn', `<strong>Failure simulated</strong> — ${data.message}`, res.status);
+        // Immediately check health
+        await checkHealth();
+      } catch (err) {
+        addLogEntry('error', `<strong>Simulate failure failed</strong> — ${err.message}`);
+      }
+      btn.classList.remove('is-loading');
+    }
+
+    async function simulateRecovery() {
+      const btn = $('btnRecovery');
+      btn.classList.add('is-loading');
+      try {
+        const res  = await fetch('/simulate-recovery');
+        const data = await res.json();
+        addLogEntry('ok', `<strong>Recovery triggered</strong> — ${data.message}`, res.status);
+        await checkHealth();
+      } catch (err) {
+        addLogEntry('error', `<strong>Simulate recovery failed</strong> — ${err.message}`);
+      }
+      btn.classList.remove('is-loading');
+    }
+
+    async function manualHealthCheck() {
+      const btn = $('btnHealth');
+      btn.classList.add('is-loading');
+      addLogEntry('info', '<strong>Manual health check</strong> initiated');
+      await checkHealth();
+      btn.classList.remove('is-loading');
+    }
+
+    async function fetchVersion() {
+      const btn = $('btnVersion');
+      btn.classList.add('is-loading');
+      try {
+        const res  = await fetch('/version');
+        const data = await res.json();
+        updateCards(data);
+        addLogEntry('info',
+          `<strong>Version info</strong> — ${data.version} (${data.environment})`,
+          res.status);
+      } catch (err) {
+        addLogEntry('error', `<strong>Fetch version failed</strong> — ${err.message}`);
+      }
+      btn.classList.remove('is-loading');
+    }
+
+    // ── Polling ──────────────────────────────────
+    function startPolling() {
+      stopPolling();
+      const interval = parseInt($('intervalSelect').value, 10);
+      pollingTimer = setInterval(checkHealth, interval);
+    }
+
+    function stopPolling() {
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+
+    $('pollingToggle').addEventListener('change', (e) => {
+      if (e.target.checked) {
+        startPolling();
+        addLogEntry('info', '<strong>Auto-refresh</strong> enabled');
+      } else {
+        stopPolling();
+        addLogEntry('info', '<strong>Auto-refresh</strong> disabled');
+      }
+    });
+
+    $('intervalSelect').addEventListener('change', () => {
+      if ($('pollingToggle').checked) {
+        startPolling();
+        const secs = parseInt($('intervalSelect').value, 10) / 1000;
+        addLogEntry('info', `<strong>Polling interval</strong> changed to ${secs}s`);
+      }
+    });
+
+    // ── Initialization ───────────────────────────
+    (async function init() {
+      addLogEntry('info', '<strong>Dashboard initialized</strong> — Connecting to server');
+      await checkHealth();
+      startPolling();
+    })();
+  </script>
+</body>
+</html>
