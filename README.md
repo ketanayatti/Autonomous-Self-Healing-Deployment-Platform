@@ -1,292 +1,470 @@
-# Autonomous Self-Healing Deployment Platform
+<div align="center">
 
-A production-style DevOps deployment platform implementing **zero-downtime releases using Blue-Green deployment strategy**, automated health validation, and an **intelligent rollback mechanism** on Linux-based infrastructure.
+```
+ █████╗ ██╗   ██╗████████╗ ██████╗ ███╗   ██╗ ██████╗ ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗████╗  ██║██╔═══██╗████╗ ████║██╔═══██╗██║   ██║██╔════╝
+███████║██║   ██║   ██║   ██║   ██║██╔██╗ ██║██║   ██║██╔████╔██║██║   ██║██║   ██║███████╗
+██╔══██║██║   ██║   ██║   ██║   ██║██║╚██╗██║██║   ██║██║╚██╔╝██║██║   ██║██║   ██║╚════██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝██║ ╚████║╚██████╔╝██║ ╚═╝ ██║╚██████╔╝╚██████╔╝███████║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚══════╝
+```
 
-This project simulates how modern DevOps teams safely deploy applications while maintaining system reliability.
+# 🚀 Autonomous Self-Healing Deployment Platform
+
+### _Zero-Downtime Blue-Green Deployments with Intelligent Auto-Rollback_
+
+<br/>
+
+[![Platform](https://img.shields.io/badge/Platform-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://www.linux.org/)
+[![Docker](https://img.shields.io/badge/Docker-Container_Runtime-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![NGINX](https://img.shields.io/badge/NGINX-Reverse_Proxy-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org/)
+[![Shell](https://img.shields.io/badge/Shell-Automation_Engine-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Status](https://img.shields.io/badge/Deployment-Zero_Downtime-brightgreen?style=for-the-badge)](/)
+[![Rollback](https://img.shields.io/badge/Rollback-Automated-blue?style=for-the-badge)](/)
+
+<br/>
+
+> **A production-grade DevOps system demonstrating modern deployment practices on Linux infrastructure.**  
+> Implements zero-downtime releases, intelligent health monitoring, and automated self-healing rollback mechanisms.
+
+<br/>
+
+[📖 Overview](#-overview) · [🏗️ Architecture](#️-architecture) · [⚙️ Components](#️-core-components) · [🔄 Workflow](#-deployment-workflow) · [🚀 Getting Started](#-getting-started) · [🗺️ Roadmap](#️-roadmap)
+
+</div>
 
 ---
 
-# Project Overview
+## 📖 Overview
 
-Modern production systems require **safe deployments without service interruption**.  
-This platform automates the deployment lifecycle while continuously monitoring application health.
+The **Autonomous Self-Healing Deployment Platform** is a production-style DevOps system built on Linux infrastructure. It eliminates deployment downtime and manual intervention by combining a **Blue-Green deployment strategy** with a **continuous watchdog monitoring** system that automatically rolls back failing environments.
 
-Core capabilities include:
+### ✨ Key Highlights
 
-- Zero downtime deployment
-- Blue-Green environment switching
-- Automated health validation
-- Intelligent rollback system
-- Containerized application runtime
-- Reverse proxy traffic routing
-- Deployment monitoring and logging
+| Capability                    | Implementation               | Outcome                                          |
+| ----------------------------- | ---------------------------- | ------------------------------------------------ |
+| 🟢 Zero-Downtime Deployment   | Blue-Green Strategy          | Instant traffic switch — no service interruption |
+| 🔁 Auto Rollback              | Watchdog + Failure Threshold | Faults resolved autonomously in seconds          |
+| 🐳 Containerized Environments | Docker Runtime               | Isolated, reproducible deployments               |
+| 🔀 Traffic Control            | NGINX Reverse Proxy          | Dynamic routing without service restart          |
+| ❤️ Health Validation          | API Health Endpoints         | Deployment aborted on bad health                 |
+| 📋 Full Observability         | Structured Log Files         | Complete audit trail of every event              |
 
 ---
 
-# Architecture Overview
+## 🏗️ Architecture
 
-The platform consists of multiple infrastructure components working together to ensure reliable deployments.
+### System Architecture Overview
 
-```mermaid
-graph TD
+```
+                          ┌──────────────────────────────────────────┐
+                          │           DEPLOYMENT ENGINE               │
+                          │  (Orchestrates entire release lifecycle)  │
+                          └───────────────────┬──────────────────────┘
+                                              │
+              ┌───────────────────────────────┼───────────────────────────────┐
+              │                               │                               │
+     ┌────────▼────────┐           ┌──────────▼──────────┐        ┌──────────▼──────────┐
+     │   DOCKER BUILD  │           │    NGINX PROXY      │        │   STATE MANAGEMENT  │
+     │  (Container     │           │  (Traffic Routing)  │        │   (Active Env File) │
+     │   Lifecycle)    │           │                     │        │                     │
+     └────────┬────────┘           └──────────┬──────────┘        └─────────────────────┘
+              │                               │
+     ┌────────▼────────┐           ┌──────────▼──────────┐
+     │ BLUE ENVIRONMENT│◄──────────►GREEN ENVIRONMENT    │
+     │  (Port: Blue)   │  TRAFFIC  │  (Port: Green)      │
+     │  ┌───────────┐  │  SWITCH   │  ┌───────────┐      │
+     │  │ App + /   │  │           │  │ App + /   │      │
+     │  │ health    │  │           │  │ health    │      │
+     │  └───────────┘  │           │  └───────────┘      │
+     └────────┬────────┘           └──────────┬──────────┘
+              │                               │
+              └───────────────┬───────────────┘
+                              │
+                   ┌──────────▼──────────┐
+                   │  WATCHDOG MONITOR   │
+                   │  (Continuous Health │
+                   │   Checking Loop)    │
+                   │                     │
+                   │  Failure > Threshold│
+                   │        ──▼──        │
+                   │   ROLLBACK ENGINE   │
+                   └─────────────────────┘
+```
 
-Developer --> DeploymentEngine
+### Blue-Green Architecture
 
-DeploymentEngine --> DockerRuntime
-
-DockerRuntime --> BlueEnvironment
-DockerRuntime --> GreenEnvironment
-
-BlueEnvironment --> Application
-GreenEnvironment --> Application
-
-Application --> HealthEndpoint
-
-Nginx --> BlueEnvironment
-Nginx --> GreenEnvironment
-
-DeploymentEngine --> Watchdog
-
-Watchdog --> HealthEndpoint
-Watchdog --> RollbackEngine
+```
+  User Request
+      │
+      ▼
+ ┌─────────┐       ┌──────────────────┐       ┌─────────────┐
+ │  Client │──────►│   NGINX Proxy    │──────►│  ACTIVE ENV │──────► Application
+ └─────────┘       │ (Routes traffic) │       │ Blue/Green  │
+                   └──────────────────┘       └─────────────┘
+                          │  on switch
+                          ▼
+                   ┌──────────────────┐
+                   │   STANDBY ENV    │ ◄── New deployments land here
+                   │   Green/Blue     │     before traffic switch
+                   └──────────────────┘
 ```
 
 ---
 
-# Blue-Green Deployment Model
-
-The system maintains **two identical environments** to guarantee zero downtime during deployments.
-
-| Environment | Role |
-|---|---|
-| Blue | Active production environment |
-| Green | New deployment candidate |
-
-Deployment process:
-
-1. Deploy new version to inactive environment
-2. Validate application health
-3. Switch traffic via reverse proxy
-4. Monitor deployment
-5. Automatically rollback if failure occurs
-
-```mermaid
-graph LR
-
-User --> Nginx
-
-Nginx --> Blue
-Nginx --> Green
-
-Blue --> Application
-Green --> Application
-
-Application --> HealthCheck
-```
-
----
-
-# Deployment Workflow
-
-The deployment engine automates the full release lifecycle.
-
-```mermaid
-flowchart TD
-
-Start --> DetectActiveEnvironment
-
-DetectActiveEnvironment --> SelectTargetEnvironment
-
-SelectTargetEnvironment --> BuildContainer
-
-BuildContainer --> StartNewContainer
-
-StartNewContainer --> HealthValidation
-
-HealthValidation -->|Healthy| SwitchTraffic
-HealthValidation -->|Unhealthy| AbortDeployment
-
-SwitchTraffic --> StartWatchdog
-
-StartWatchdog --> DeploymentComplete
-```
-
----
-
-# Project Structure
+## 📁 Project Structure
 
 ```
-project-root
+autonomous-self-healing-deployment-platform/
 │
-├── app
-│   ├── application service
-│   └── dashboard interface
+├── 📂 app/                          # Application service source
+│   ├── app.py                       # HTTP service with health endpoints
+│   ├── requirements.txt             # Runtime dependencies
+│   └── Dockerfile                   # Container image definition
 │
-├── nginx
-│   └── reverse proxy configuration
+├── 📂 nginx/                        # Reverse proxy configuration
+│   └── nginx.conf                   # Upstream & routing config
 │
-├── scripts
-│   └── deployment automation
+├── 📂 scripts/                      # Deployment automation engine
+│   ├── deploy.sh                    # Main deployment orchestrator
+│   ├── rollback.sh                  # Manual rollback trigger
+│   └── watchdog.sh                  # Continuous health monitor
 │
-├── logs
-│   ├── deployment logs
-│   └── watchdog logs
+├── 📂 logs/                         # Runtime logs (auto-generated)
+│   ├── deployment.log               # Deployment lifecycle events
+│   └── watchdog.log                 # Health checks & rollback events
 │
-└── state
-    ├── active environment state
-    └── watchdog process state
+├── 📂 state/                        # Active environment tracking
+│   └── active_env                   # Stores: "blue" or "green"
+│
+└── README.md
 ```
 
 ---
 
-# Core Components
+## ⚙️ Core Components
 
-## Application Service
+### 1. 🚢 Deployment Engine (`scripts/deploy.sh`)
 
-A lightweight service used to simulate production deployments.
+The central orchestration brain. Automates the complete release lifecycle from environment detection to post-deployment monitoring.
 
-Available endpoints:
+**Responsibilities:**
 
-| Endpoint | Purpose |
-|---|---|
-| `/health` | Application health status |
-| `/version` | Running application version |
-| `/simulate-failure` | Simulate application failure |
-| `/simulate-recovery` | Restore service health |
-
-These endpoints allow automated validation during deployments.
-
----
-
-## Reverse Proxy
-
-The system uses **NGINX as a traffic controller**.
-
-Responsibilities:
-
-- Accept user requests
-- Route traffic to active deployment environment
-- Enable instant environment switching
+- Reads `state/active_env` to detect which environment is live
+- Selects the inactive environment as the deployment target
+- Builds a fresh Docker container image
+- Deploys the container to the target environment
+- Runs automated health checks before switching traffic
+- Updates NGINX configuration to redirect traffic
+- Starts the Watchdog service for post-deployment monitoring
 
 ---
 
-## Deployment Engine
+### 2. 🌐 Application Service (`app/`)
 
-The deployment engine automates application release operations.
+A lightweight HTTP service simulating real production applications. Exposes all endpoints needed for automated deployment validation.
 
-Responsibilities:
-
-- Build application containers
-- Deploy new environment
-- Run health validation
-- Update routing configuration
-- Start monitoring services
+| Endpoint             | Method | Purpose                                                                        |
+| -------------------- | ------ | ------------------------------------------------------------------------------ |
+| `/health`            | GET    | Returns current health status — the foundation of all automated decisions      |
+| `/version`           | GET    | Returns deployed version — enables version tracking and validation             |
+| `/simulate-failure`  | POST   | Artificially degrades health — used for chaos engineering and rollback testing |
+| `/simulate-recovery` | POST   | Restores health status — validates recovery scenarios                          |
 
 ---
 
-## Watchdog Monitoring System
+### 3. 🔀 NGINX Reverse Proxy (`nginx/`)
 
-A background monitoring service continuously checks application health.
+Acts as the intelligent traffic controller between the user and the active environment.
 
-Monitoring behavior:
+**Responsibilities:**
 
-- Periodic health checks
-- Failure detection
-- Failure counter tracking
-- Automated rollback trigger
+- Receives all incoming client requests
+- Routes 100% of traffic to the currently active environment (Blue or Green)
+- Performs instant environment switching via config reload — **no service interruption**
+- Supports load distribution across available instances
 
-```mermaid
-flowchart TD
+---
 
-CheckHealth -->|Healthy| ContinueMonitoring
+### 4. 🐕 Watchdog Monitoring System (`scripts/watchdog.sh`)
 
-CheckHealth -->|Failure| FailureCounter
+A background process that continuously validates the health of the active environment after every deployment.
 
-FailureCounter --> ThresholdCheck
-
-ThresholdCheck -->|BelowThreshold| Retry
-
-ThresholdCheck -->|Exceeded| TriggerRollback
+```
+  ┌─────────┐
+  │  START  │
+  └────┬────┘
+       │ Poll every N seconds
+       ▼
+  ┌────────────┐    ✅ Healthy    ┌──────────────────┐
+  │ CheckHealth├──────────────── ►│ ContinueMonitor  │◄──┐
+  └────┬───────┘                  └──────────────────┘   │
+       │ ❌ Failure                                        │
+       ▼                                                   │
+  ┌────────────────────┐                                   │
+  │ IncreaseFailCounter│                                   │
+  └────────┬───────────┘                                   │
+           │                                               │
+           ▼                                               │
+  ┌─────────────────┐   Below Limit  ┌──────────┐         │
+  │  CheckThreshold ├───────────────►│  Retry   ├─────────┘
+  └────────┬────────┘                └──────────┘
+           │ Exceeded
+           ▼
+  ┌──────────────────┐
+  │  TRIGGER ROLLBACK│
+  └──────────────────┘
 ```
 
 ---
 
-# Self-Healing Rollback Mechanism
+### 5. 🔄 Self-Healing Rollback Engine
 
-If repeated health failures are detected:
+Triggered automatically when the Watchdog failure counter exceeds the configured threshold.
 
-1. Faulty environment is stopped
-2. Traffic is restored to previous environment
-3. System state is updated
-4. Monitoring continues
+**Rollback Sequence:**
 
-This guarantees **production stability during faulty deployments**.
+```
+  FailureDetected
+       │
+       ▼
+  StopBrokenEnvironment  ──── Terminates faulty container immediately
+       │
+       ▼
+  RestorePreviousTraffic ──── NGINX config reverted to last stable env
+       │
+       ▼
+  UpdateState            ──── active_env file updated
+       │
+       ▼
+  ResumeMonitoring       ──── Watchdog restarted on restored environment
+```
 
----
-
-# Deployment Example
-
-Typical deployment lifecycle:
-
-1. Developer triggers deployment
-2. New version is deployed to inactive environment
-3. Health validation is executed
-4. Traffic switches to new environment
-5. Monitoring watchdog observes system health
-6. Automatic rollback occurs if failure is detected
-
----
-
-# DevOps Practices Demonstrated
-
-This project demonstrates several real-world DevOps engineering principles.
-
-| Practice | Implementation |
-|---|---|
-| Infrastructure automation | Shell-based deployment engine |
-| Containerization | Docker runtime |
-| Deployment strategy | Blue-Green deployment |
-| Reverse proxy routing | NGINX |
-| Health validation | Application health checks |
-| Self-healing systems | Watchdog monitoring |
-| Observability | Deployment and monitoring logs |
+> No manual intervention required. The system restores production stability autonomously.
 
 ---
 
-# Future Enhancements
+## 🔄 Deployment Workflow
 
-Potential improvements to evolve this platform into a production-grade DevOps system.
+### Complete Lifecycle
 
-- CI/CD pipeline integration
-- Kubernetes orchestration
-- Canary deployments
-- Prometheus monitoring
-- Grafana observability dashboards
-- GitHub Actions automation
+```
+Developer triggers deploy.sh
+         │
+         ▼
+  ① Detect Active Environment
+    Read state/active_env → "blue"
+         │
+         ▼
+  ② Select Deployment Target
+    Active = blue  →  Target = green
+         │
+         ▼
+  ③ Build Container
+    docker build -t app:new ./app
+         │
+         ▼
+  ④ Start New Environment
+    docker run ... app-green
+         │
+         ▼
+  ⑤ Health Validation
+    curl http://localhost:PORT/health
+    ┌────────────────────────────────┐
+    │ ✅ HEALTHY → proceed           │
+    │ ❌ UNHEALTHY → abort & preserve│
+    │              active env        │
+    └────────────────────────────────┘
+         │ (if healthy)
+         ▼
+  ⑥ Switch Traffic
+    Update nginx.conf → reload NGINX
+    Active traffic now on green ✅
+         │
+         ▼
+  ⑦ Update State
+    echo "green" > state/active_env
+         │
+         ▼
+  ⑧ Start Watchdog
+    watchdog.sh monitors green env
+         │
+         ▼
+  ✅ Deployment Complete
+```
+
+### Scenario: Auto-Rollback in Action
+
+```
+① Deployment to Green succeeds
+② Health checks pass → traffic switches to Green
+③ Over time: app starts degrading (crashes, timeouts)
+④ Watchdog detects repeated /health failures
+⑤ Failure counter exceeds threshold
+⑥ Rollback engine fires automatically:
+      → Green container stopped
+      → NGINX reverted to Blue
+      → State file updated
+      → Watchdog restarted on Blue
+⑦ Production restored — zero manual intervention ✅
+```
 
 ---
 
-# Skills Demonstrated
+## 📊 Deployment Metrics
 
-This project highlights practical DevOps engineering capabilities.
-
-- Linux automation
-- Container orchestration fundamentals
-- Deployment reliability engineering
-- Infrastructure management
-- Reverse proxy configuration
-- Monitoring and rollback strategies
-
----
-
-# Author
-
-**Ketan Ayatti**
-
-Focused on building production-style infrastructure systems and deployment platforms.
+| Metric                      | Value                                       |
+| --------------------------- | ------------------------------------------- |
+| Deployment Downtime         | **Zero** (Blue-Green instant switch)        |
+| Rollback Time               | **Seconds** (traffic redirection)           |
+| Health Check Interval       | **Configurable** (typically 5–10 seconds)   |
+| Failure Detection Threshold | **Configurable** failure count              |
+| Core Components             | **5** (Engine, App, Proxy, Watchdog, State) |
+| Supported Strategies        | Blue-Green (canary & rolling on roadmap)    |
+| Infrastructure              | Linux-based                                 |
 
 ---
 
-# License
+## 🚀 Getting Started
 
-This project is intended for educational and portfolio demonstration purposes.
+### Prerequisites
+
+```bash
+# Required software
+- Linux OS (Ubuntu 20.04+ recommended)
+- Docker (daemon running)
+- NGINX
+- Bash shell
+- Git
+```
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/ketanayatti/Autonomous-Self-Healing-Deployment-Platform.git
+cd Autonomous-Self-Healing-Deployment-Platform
+
+# 2. Build initial application container
+docker build -t app:v1 ./app
+
+# 3. Initialize state tracking
+echo "blue" > state/active_env
+
+# 4. Configure NGINX upstream servers
+# Edit nginx/nginx.conf with your port configuration
+sudo nginx -t && sudo systemctl reload nginx
+
+# 5. Deploy the Blue environment
+./scripts/deploy.sh v1
+```
+
+### Running a Deployment
+
+```bash
+# Trigger a new deployment
+./scripts/deploy.sh v2
+
+# Monitor deployment output
+tail -f logs/deployment.log
+
+# Monitor watchdog health checks
+tail -f logs/watchdog.log
+
+# Check active environment
+cat state/active_env
+
+# Verify deployed version
+curl http://localhost/version
+
+# Check application health
+curl http://localhost/health
+```
+
+### Testing Rollback
+
+```bash
+# Simulate application failure (triggers auto-rollback)
+curl -X POST http://localhost/simulate-failure
+
+# Watch watchdog detect failure and roll back
+tail -f logs/watchdog.log
+
+# Confirm environment has reverted
+cat state/active_env
+```
+
+---
+
+## 🔍 Troubleshooting
+
+| Issue                            | Likely Cause                           | Fix                                             |
+| -------------------------------- | -------------------------------------- | ----------------------------------------------- |
+| Health checks fail during deploy | App not listening on expected port     | Verify `Dockerfile` EXPOSE and app bind address |
+| NGINX not routing after switch   | Config syntax error                    | Run `nginx -t` before reload                    |
+| Watchdog not triggering rollback | Threshold not exceeded or process dead | Check `logs/watchdog.log` and watchdog PID      |
+| Container startup failures       | Missing deps or env vars               | Inspect `docker logs <container_name>`          |
+
+---
+
+## 🗺️ Roadmap
+
+```
+Phase 1 — CI/CD Integration
+  ├── GitHub Actions workflow automation
+  ├── Automated test runs on every commit
+  └── Artifact registry management
+
+Phase 2 — Advanced Orchestration
+  ├── Kubernetes deployment support
+  ├── Helm chart development
+  └── Horizontal pod autoscaling
+
+Phase 3 — Deployment Strategies
+  ├── Canary deployment (gradual rollout %)
+  ├── Shadow traffic testing
+  └── A/B testing framework
+
+Phase 4 — Observability
+  ├── Prometheus metrics integration
+  ├── Grafana dashboard creation
+  └── Distributed tracing
+
+Phase 5 — Production Hardening
+  ├── Secrets management
+  ├── Network policy enforcement
+  └── Security scanning automation
+```
+
+---
+
+## 🛠️ DevOps Skills Demonstrated
+
+| Domain                       | Implementation                                               |
+| ---------------------------- | ------------------------------------------------------------ |
+| **Linux Automation**         | Shell-based deployment engine with full lifecycle management |
+| **Containerization**         | Docker image builds, container lifecycle, resource isolation |
+| **Deployment Strategy**      | Blue-Green zero-downtime releases with validation gates      |
+| **Infrastructure as Code**   | Scriptable, repeatable deployments — CI/CD ready             |
+| **Reverse Proxy Management** | NGINX dynamic routing and configuration reload               |
+| **Reliability Engineering**  | Self-healing watchdog, automated MTTR reduction              |
+| **Observability**            | Structured logs for deployments, health, and rollback events |
+| **Chaos Engineering**        | Failure simulation endpoints for validation testing          |
+
+---
+
+## 📄 License
+
+This project is for **educational and portfolio demonstration purposes**.
+
+---
+
+<div align="center">
+
+**Built by [Ketan Ayatti](https://github.com/ketanayatti)**
+
+_Demonstrating production-grade DevOps engineering principles_
+
+⭐ If this project helped you, please consider giving it a star!
+
+</div>
